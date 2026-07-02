@@ -1,13 +1,19 @@
 import streamlit as st
 import os
 import re
-import requests
+from pathlib import Path
 from snowflake.snowpark.context import get_active_session
 
 st.set_page_config(page_title="HTML Viewer", layout="wide")
 st.title("HTML Viewer")
 
 session = get_active_session()
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+CDN_MAP = {
+    "chart.js": "chart.umd.min.js",
+}
 
 stages_df = session.sql("SHOW STAGES IN CONSTRACT.PUBLIC").collect()
 stage_names = [row["name"] for row in stages_df]
@@ -40,16 +46,23 @@ session.sql(f"GET {stage_path}/{file_name} file://{local_dir}/").collect()
 
 
 @st.cache_data
+def load_local_script(filename: str) -> str:
+    path = STATIC_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
+
+
+@st.cache_data
 def inline_external_scripts(html: str) -> str:
     pattern = r'<script\s+src=["\']([^"\']+)["\'][^>]*>\s*</script>'
     def replace_script(match):
         url = match.group(1)
-        try:
-            resp = requests.get(url, timeout=15)
-            if resp.status_code == 200:
-                return f"<script>{resp.text}</script>"
-        except Exception:
-            pass
+        for cdn_key, local_file in CDN_MAP.items():
+            if cdn_key in url:
+                content = load_local_script(local_file)
+                if content:
+                    return f"<script>{content}</script>"
         return match.group(0)
     return re.sub(pattern, replace_script, html)
 
