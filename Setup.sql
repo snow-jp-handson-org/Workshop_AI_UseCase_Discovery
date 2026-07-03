@@ -223,18 +223,26 @@ tool_resources:
 $$;
 
 -- ##########################################################################
--- Section 5: HTML確認用Streamlitアプリ構築 (Git連携 + ウェアハウスランタイム)
+-- Section 5: HTML確認用Streamlitアプリ構築 (Git連携 + コンテナランタイム)
 -- ##########################################################################
 
 -- スキーマ切り替え
 USE DATABASE CORPORATE_REPORT_ANALYZE;
 USE SCHEMA ANALYZE;
 
--- Streamlitアプリの作成 (ウェアハウスランタイムでGitリポジトリからデプロイ)
+-- PyPIアクセス用External Access Integration (pip install用)
+CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION PYPI_ACCESS_INTEGRATION
+  ALLOWED_NETWORK_RULES = (snowflake.external_access.pypi_rule)
+  ENABLED = TRUE;
+
+-- Streamlitアプリの作成 (コンテナランタイムでGitリポジトリからデプロイ)
 CREATE OR REPLACE STREAMLIT CORPORATE_REPORT_ANALYZE.ANALYZE.HTML_VIEWER
   ROOT_LOCATION = '@CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.WORKSHOP_AI_USECASE_REPO/branches/main/html_viewer/'
   MAIN_FILE = 'streamlit_app.py'
-  QUERY_WAREHOUSE = 'COMPUTE_WH';
+  QUERY_WAREHOUSE = 'COMPUTE_WH'
+  COMPUTE_POOL = 'SYSTEM_COMPUTE_POOL_CPU'
+  RUNTIME_NAME = 'SYSTEM$ST_CONTAINER_RUNTIME_PY3_11'
+  EXTERNAL_ACCESS_INTEGRATIONS = (PYPI_ACCESS_INTEGRATION);
 
 -- ##########################################################################
 -- ポイント・補足情報
