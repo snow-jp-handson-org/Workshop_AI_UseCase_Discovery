@@ -223,7 +223,7 @@ tool_resources:
 $$;
 
 -- ##########################################################################
--- Section 5: HTML確認用Streamlitアプリ構築 (Git連携 + コンテナランタイム)
+-- Section 5: HTML確認用Streamlitアプリ構築 (コンテナランタイム)
 -- ##########################################################################
 
 -- スキーマ切り替え
@@ -235,9 +235,18 @@ CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION PYPI_ACCESS_INTEGRATION
   ALLOWED_NETWORK_RULES = (snowflake.external_access.pypi_rule)
   ENABLED = TRUE;
 
--- Streamlitアプリの作成 (コンテナランタイムでGitリポジトリからデプロイ)
+-- Streamlitアプリ用ステージ
+CREATE OR REPLACE STAGE CORPORATE_REPORT_ANALYZE.ANALYZE.HTML_VIEWER_STAGE
+  ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE');
+
+-- Gitリポジトリからアプリコードをコピー
+COPY FILES
+  INTO @CORPORATE_REPORT_ANALYZE.ANALYZE.HTML_VIEWER_STAGE
+  FROM @CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.WORKSHOP_AI_USECASE_REPO/branches/main/html_viewer/;
+
+-- Streamlitアプリの作成 (コンテナランタイム + バージョン付きステージ)
 CREATE OR REPLACE STREAMLIT CORPORATE_REPORT_ANALYZE.ANALYZE.HTML_VIEWER
-  ROOT_LOCATION = '@CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.WORKSHOP_AI_USECASE_REPO/branches/main/html_viewer/'
+  FROM @CORPORATE_REPORT_ANALYZE.ANALYZE.HTML_VIEWER_STAGE
   MAIN_FILE = 'streamlit_app.py'
   QUERY_WAREHOUSE = 'COMPUTE_WH'
   COMPUTE_POOL = 'SYSTEM_COMPUTE_POOL_CPU'
