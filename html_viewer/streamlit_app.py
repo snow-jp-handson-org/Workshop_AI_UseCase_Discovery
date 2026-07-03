@@ -85,7 +85,6 @@ if os.path.exists(local_path):
 
     import base64
     b64 = base64.b64encode(html_content.encode("utf-8")).decode()
-    fullscreen_href = f"data:text/html;base64,{b64}"
 
     col_dl, col_fs = st.columns(2)
     with col_dl:
@@ -96,12 +95,21 @@ if os.path.exists(local_path):
             mime="text/html",
         )
     with col_fs:
-        st.markdown(
-            f'<a href="{fullscreen_href}" target="_blank">'
-            '<button style="padding:0.5rem 1rem;border-radius:0.3rem;border:1px solid #ccc;cursor:pointer;">'
-            '🖥️ 全画面で表示</button></a>',
-            unsafe_allow_html=True,
-        )
+        fullscreen_js = f"""
+        <script>
+        function openFullscreen() {{
+            var b64 = "{b64}";
+            var html = atob(b64);
+            var win = window.open("", "_blank");
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+        }}
+        </script>
+        <button onclick="openFullscreen()" style="padding:0.5rem 1rem;border-radius:0.3rem;border:1px solid #ccc;cursor:pointer;">
+        🖥️ 全画面で表示</button>
+        """
+        st.components.v1.html(fullscreen_js, height=50)
 
     html_rendered = inline_external_scripts(html_content)
     st.components.v1.html(html_rendered, height=5000, scrolling=True)
