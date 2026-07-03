@@ -1,5 +1,4 @@
 import streamlit as st
-import os
 import re
 from pathlib import Path
 from snowflake.snowpark.context import get_active_session
@@ -48,13 +47,11 @@ selected_idx = st.selectbox("HTMLファイルを選択", range(len(display_names
 selected_file = html_files[selected_idx]
 
 stage_path = f"@CORPORATE_REPORT_ANALYZE.ANALYZE.{selected_stage}"
-local_dir = "/tmp/html_viewer"
-os.makedirs(local_dir, exist_ok=True)
 
 file_name = selected_file.split("/")[-1]
-local_path = os.path.join(local_dir, file_name)
 
-session.sql(f"GET {stage_path}/{file_name} file://{local_dir}/ PARALLEL=4").collect()
+with session.file.get_stream(f"{stage_path}/{file_name}") as f:
+    html_content = f.read().decode("utf-8")
 
 
 @st.cache_data
@@ -79,10 +76,7 @@ def inline_external_scripts(html: str) -> str:
     return re.sub(pattern, replace_script, html)
 
 
-if os.path.exists(local_path):
-    with open(local_path, "r", encoding="utf-8") as f:
-        html_content = f.read()
-
+if html_content:
     st.download_button(
         label="📥 HTMLをダウンロード",
         data=html_content,
@@ -93,4 +87,4 @@ if os.path.exists(local_path):
     html_rendered = inline_external_scripts(html_content)
     st.components.v1.html(html_rendered, height=5000, scrolling=True)
 else:
-    st.error(f"ファイルのダウンロードに失敗しました: {file_name}")
+    st.error(f"ファイルの読み込みに失敗しました: {file_name}")
