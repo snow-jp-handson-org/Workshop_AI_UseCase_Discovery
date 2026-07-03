@@ -27,7 +27,7 @@ with col2:
 
 _ = st.session_state.refresh_counter
 
-stages_df = session.sql("SHOW STAGES IN CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA").collect()
+stages_df = session.sql("SHOW STAGES IN CORPORATE_REPORT_ANALYZE.ANALYZE").collect()
 stage_names = [row["name"] for row in stages_df]
 
 if not stage_names:
@@ -36,7 +36,7 @@ if not stage_names:
 
 selected_stage = st.selectbox("ステージを選択", stage_names)
 
-files_df = session.sql(f"LIST @CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.{selected_stage}").collect()
+files_df = session.sql(f"LIST @CORPORATE_REPORT_ANALYZE.ANALYZE.{selected_stage}").collect()
 html_files = [row["name"] for row in files_df if row["name"].endswith(".html")]
 
 if not html_files:
@@ -47,7 +47,7 @@ display_names = [f.split("/")[-1] for f in html_files]
 selected_idx = st.selectbox("HTMLファイルを選択", range(len(display_names)), format_func=lambda i: display_names[i])
 selected_file = html_files[selected_idx]
 
-stage_path = f"@CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.{selected_stage}"
+stage_path = f"@CORPORATE_REPORT_ANALYZE.ANALYZE.{selected_stage}"
 local_dir = "/tmp/html_viewer"
 os.makedirs(local_dir, exist_ok=True)
 
