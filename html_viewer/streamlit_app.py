@@ -85,6 +85,6 @@ if html_content:
     )
 
     html_rendered = inline_external_scripts(html_content)
-    st.components.v1.html(html_rendered, height=5000, scrolling=True)
+    st.html(html_rendered)
 else:
     st.error(f"ファイルの読み込みに失敗しました: {file_name}")
