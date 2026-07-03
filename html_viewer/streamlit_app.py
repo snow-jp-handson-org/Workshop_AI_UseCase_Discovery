@@ -99,10 +99,10 @@ if os.path.exists(local_path):
         <script>
         function openFullscreen() {{
             var b64 = "{b64}";
-            var html = atob(b64);
+            var html = decodeURIComponent(escape(atob(b64)));
             var win = window.open("", "_blank");
-            win.document.open();
-            win.document.write(html);
+            win.document.open("text/html", "replace");
+            win.document.write('<meta charset="utf-8">' + html);
             win.document.close();
         }}
         </script>
