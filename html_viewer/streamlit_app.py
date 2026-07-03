@@ -85,6 +85,6 @@ if html_content:
     )
 
     html_rendered = inline_external_scripts(html_content)
-    st.html(html_rendered)
+    st.markdown(html_rendered, unsafe_allow_html=True)
 else:
     st.error(f"ファイルの読み込みに失敗しました: {file_name}")
