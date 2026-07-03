@@ -223,27 +223,18 @@ tool_resources:
 $$;
 
 -- ##########################################################################
--- Section 5: HTML確認用Streamlitアプリ構築 (Git連携 + コンテナランタイム)
+-- Section 5: HTML確認用Streamlitアプリ構築 (Git連携 + ウェアハウスランタイム)
 -- ##########################################################################
 
 -- スキーマ切り替え
 USE DATABASE CORPORATE_REPORT_ANALYZE;
-USE SCHEMA ANALYZE;
+USE SCHEMA REPORT_SEARCH_SCHEMA;
 
--- PyPIアクセス用External Access Integration (pip install用)
-CREATE OR REPLACE EXTERNAL ACCESS INTEGRATION PYPI_ACCESS_INTEGRATION
-  ALLOWED_NETWORK_RULES = (snowflake.external_access.pypi_rule)  -- Snowflake組み込みのPyPIルール
-  ENABLED = TRUE;
-
-
--- Streamlitアプリの作成 (コンテナランタイムでGitリポジトリからデプロイ)
+-- Streamlitアプリの作成 (ウェアハウスランタイムでGitリポジトリからデプロイ)
 CREATE OR REPLACE STREAMLIT CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.HTML_VIEWER
-  ROOT_LOCATION = '@CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.WORKSHOP_AI_USECASE_REPO/branches/main/html_viewer/'  -- Gitリポジトリ内のアプリディレクトリ
-  MAIN_FILE = 'streamlit_app.py'               -- エントリポイントファイル
-  QUERY_WAREHOUSE = 'COMPUTE_WH'               -- SQL実行用ウェアハウス
-  COMPUTE_POOL = 'SYSTEM_COMPUTE_POOL_CPU'     -- コンテナ実行用コンピュートプール
-  RUNTIME_NAME = 'SYSTEM$ST_CONTAINER_RUNTIME_PY3_11'  -- Python 3.11コンテナランタイム
-  EXTERNAL_ACCESS_INTEGRATIONS = (PYPI_ACCESS_INTEGRATION);  -- 外部通信許可
+  ROOT_LOCATION = '@CORPORATE_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.WORKSHOP_AI_USECASE_REPO/branches/main/html_viewer/'
+  MAIN_FILE = 'streamlit_app.py'
+  QUERY_WAREHOUSE = 'COMPUTE_WH';
 
 -- ##########################################################################
 -- ポイント・補足情報
