@@ -15,7 +15,19 @@ CDN_MAP = {
     "chart.js": "chart.umd.min.js",
 }
 
-stages_df = session.sql("SHOW STAGES IN CONSTRACT.PUBLIC").collect()
+if "refresh_counter" not in st.session_state:
+    st.session_state.refresh_counter = 0
+
+col1, col2 = st.columns([6, 1])
+with col2:
+    if st.button("🔄 更新"):
+        st.session_state.refresh_counter += 1
+        st.cache_data.clear()
+        st.rerun()
+
+_ = st.session_state.refresh_counter
+
+stages_df = session.sql("SHOW STAGES IN CORPORATE_REPORT_ANALYZE.ANALYZE").collect()
 stage_names = [row["name"] for row in stages_df]
 
 if not stage_names:
@@ -24,7 +36,7 @@ if not stage_names:
 
 selected_stage = st.selectbox("ステージを選択", stage_names)
 
-files_df = session.sql(f"LIST @CONSTRACT.PUBLIC.{selected_stage}").collect()
+files_df = session.sql(f"LIST @CORPORATE_REPORT_ANALYZE.ANALYZE.{selected_stage}").collect()
 html_files = [row["name"] for row in files_df if row["name"].endswith(".html")]
 
 if not html_files:
@@ -35,14 +47,14 @@ display_names = [f.split("/")[-1] for f in html_files]
 selected_idx = st.selectbox("HTMLファイルを選択", range(len(display_names)), format_func=lambda i: display_names[i])
 selected_file = html_files[selected_idx]
 
-stage_path = f"@CONSTRACT.PUBLIC.{selected_stage}"
+stage_path = f"@CORPORATE_REPORT_ANALYZE.ANALYZE.{selected_stage}"
 local_dir = "/tmp/html_viewer"
 os.makedirs(local_dir, exist_ok=True)
 
 file_name = selected_file.split("/")[-1]
 local_path = os.path.join(local_dir, file_name)
 
-session.sql(f"GET {stage_path}/{file_name} file://{local_dir}/").collect()
+session.sql(f"GET {stage_path}/{file_name} file://{local_dir}/ PARALLEL=4").collect()
 
 
 @st.cache_data
