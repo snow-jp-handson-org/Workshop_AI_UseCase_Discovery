@@ -10,6 +10,8 @@ st.title("HTML Viewer")
 session = get_active_session()
 
 STATIC_DIR = Path(__file__).parent / "static"
+DEFAULT_DB = "CORPORATE_REPORT_ANALYZE"
+DEFAULT_SCHEMA = "ANALYZE"
 
 CDN_MAP = {
     "chart.js": "chart.umd.min.js",
@@ -27,7 +29,18 @@ with col2:
 
 _ = st.session_state.refresh_counter
 
-stages_df = session.sql("SHOW STAGES IN CORPORATE_REPORT_ANALYZE.ANALYZE").collect()
+# DB・スキーマ選択
+db_rows = session.sql("SHOW DATABASES").collect()
+db_names = [row["name"] for row in db_rows]
+default_db_idx = db_names.index(DEFAULT_DB) if DEFAULT_DB in db_names else 0
+selected_db = st.selectbox("データベースを選択", db_names, index=default_db_idx)
+
+schema_rows = session.sql(f"SHOW SCHEMAS IN DATABASE {selected_db}").collect()
+schema_names = [row["name"] for row in schema_rows]
+default_schema_idx = schema_names.index(DEFAULT_SCHEMA) if DEFAULT_SCHEMA in schema_names else 0
+selected_schema = st.selectbox("スキーマを選択", schema_names, index=default_schema_idx)
+
+stages_df = session.sql(f"SHOW STAGES IN {selected_db}.{selected_schema}").collect()
 stage_names = [row["name"] for row in stages_df]
 
 if not stage_names:
@@ -36,7 +49,7 @@ if not stage_names:
 
 selected_stage = st.selectbox("ステージを選択", stage_names)
 
-files_df = session.sql(f"LIST @CORPORATE_REPORT_ANALYZE.ANALYZE.{selected_stage}").collect()
+files_df = session.sql(f"LIST @{selected_db}.{selected_schema}.{selected_stage}").collect()
 html_files = [row["name"] for row in files_df if row["name"].endswith(".html")]
 
 if not html_files:
@@ -47,7 +60,7 @@ display_names = [f.split("/")[-1] for f in html_files]
 selected_idx = st.selectbox("HTMLファイルを選択", range(len(display_names)), format_func=lambda i: display_names[i])
 selected_file = html_files[selected_idx]
 
-stage_path = f"@CORPORATE_REPORT_ANALYZE.ANALYZE.{selected_stage}"
+stage_path = f"@{selected_db}.{selected_schema}.{selected_stage}"
 local_dir = "/tmp/html_viewer"
 os.makedirs(local_dir, exist_ok=True)
 
@@ -55,6 +68,66 @@ file_name = selected_file.split("/")[-1]
 local_path = os.path.join(local_dir, file_name)
 
 session.sql(f"GET {stage_path}/{file_name} file://{local_dir}/").collect()
+
+
+@st.cache_data
+def load_local_script(filename: str) -> str:
+    path = STATIC_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
+
+
+@st.cache_data
+def inline_external_scripts(html: str) -> str:
+    pattern = r'<script\s+src=["\']([^"\']+)["\'][^>]*>\s*</script>'
+    def replace_script(match):
+        url = match.group(1)
+        for cdn_key, local_file in CDN_MAP.items():
+            if cdn_key in url:
+                content = load_local_script(local_file)
+                if content:
+                    return f"<script>{content}</script>"
+        return match.group(0)
+    return re.sub(pattern, replace_script, html)
+
+
+if os.path.exists(local_path):
+    with open(local_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    import base64
+    html_rendered = inline_external_scripts(html_content)
+    b64 = base64.b64encode(html_rendered.encode("utf-8")).decode()
+
+    col_dl, col_fs = st.columns(2)
+    with col_dl:
+        st.download_button(
+            label="📥 HTMLをダウンロード",
+            data=html_content,
+            file_name=file_name,
+            mime="text/html",
+        )
+    with col_fs:
+        fullscreen_js = f"""
+        <script>
+        function openFullscreen() {{
+            var b64 = "{b64}";
+            var html = decodeURIComponent(escape(atob(b64)));
+            var win = window.open("", "_blank");
+            win.document.open("text/html", "replace");
+            win.document.write('<meta charset="utf-8">' + html);
+            win.document.close();
+        }}
+        </script>
+        <button onclick="openFullscreen()" style="padding:0.5rem 1rem;border-radius:0.3rem;border:1px solid #ccc;cursor:pointer;">
+        🖥️ 全画面で表示</button>
+        """
+        st.components.v1.html(fullscreen_js, height=50)
+
+    st.components.v1.html(html_rendered, height=5000, scrolling=True)
+else:
+    st.error(f"ファイルのダウンロードに失敗しました: {file_name}")
 
 
 @st.cache_data
