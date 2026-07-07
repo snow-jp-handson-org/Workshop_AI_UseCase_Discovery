@@ -12,34 +12,37 @@ session = get_active_session()
 STATIC_DIR = Path(__file__).parent / "static"
 CDN_MAP = {"chart.js": "chart.umd.min.js"}
 
-# セッションのDB/スキーマをデフォルト値として取得（コンテナランタイム対応）
+# Streamlit配置先のDB/スキーマを動的取得
 _ctx = session.sql("SELECT CURRENT_DATABASE(), CURRENT_SCHEMA()").collect()[0]
 DEFAULT_DB     = _ctx[0] or ""
 DEFAULT_SCHEMA = _ctx[1] or ""
 
-# session_state の初期化（更新ボタン後も選択値を保持）
-if "sel_db"     not in st.session_state: st.session_state.sel_db     = DEFAULT_DB
-if "sel_schema" not in st.session_state: st.session_state.sel_schema = DEFAULT_SCHEMA
-if "sel_stage"  not in st.session_state: st.session_state.sel_stage  = None
-if "sel_file"   not in st.session_state: st.session_state.sel_file   = None
+# 前回の選択値を保持するための state（selectboxのkeyとは分離して管理）
+if "prev_db"     not in st.session_state: st.session_state.prev_db     = DEFAULT_DB
+if "prev_schema" not in st.session_state: st.session_state.prev_schema = DEFAULT_SCHEMA
+if "prev_stage"  not in st.session_state: st.session_state.prev_stage  = ""
+if "prev_file"   not in st.session_state: st.session_state.prev_file   = ""
 
-# 更新ボタン（選択中の内容を維持したままステージ・ファイルリストを再取得）
+# 更新ボタン
 col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🔄 更新"):
         st.cache_data.clear()
         st.rerun()
 
-# DB・スキーマ選択
+# DB選択
 db_rows  = session.sql("SHOW DATABASES").collect()
 db_names = [row["name"] for row in db_rows]
-db_idx   = db_names.index(st.session_state.sel_db) if st.session_state.sel_db in db_names else 0
-selected_db = st.selectbox("データベースを選択", db_names, index=db_idx, key="sel_db")
+db_idx   = db_names.index(st.session_state.prev_db) if st.session_state.prev_db in db_names else 0
+selected_db = st.selectbox("データベースを選択", db_names, index=db_idx)
+st.session_state.prev_db = selected_db
 
+# スキーマ選択
 schema_rows  = session.sql(f"SHOW SCHEMAS IN DATABASE {selected_db}").collect()
 schema_names = [row["name"] for row in schema_rows]
-schema_idx   = schema_names.index(st.session_state.sel_schema) if st.session_state.sel_schema in schema_names else 0
-selected_schema = st.selectbox("スキーマを選択", schema_names, index=schema_idx, key="sel_schema")
+schema_idx   = schema_names.index(st.session_state.prev_schema) if st.session_state.prev_schema in schema_names else 0
+selected_schema = st.selectbox("スキーマを選択", schema_names, index=schema_idx)
+st.session_state.prev_schema = selected_schema
 
 # ステージ選択
 stages_df   = session.sql(f"SHOW STAGES IN {selected_db}.{selected_schema}").collect()
@@ -47,8 +50,9 @@ stage_names = [row["name"] for row in stages_df]
 if not stage_names:
     st.warning("ステージが見つかりません。")
     st.stop()
-stage_idx    = stage_names.index(st.session_state.sel_stage) if st.session_state.sel_stage in stage_names else 0
-selected_stage = st.selectbox("ステージを選択", stage_names, index=stage_idx, key="sel_stage")
+stage_idx    = stage_names.index(st.session_state.prev_stage) if st.session_state.prev_stage in stage_names else 0
+selected_stage = st.selectbox("ステージを選択", stage_names, index=stage_idx)
+st.session_state.prev_stage = selected_stage
 
 # ファイル選択
 files_df   = session.sql(f"LIST @{selected_db}.{selected_schema}.{selected_stage}").collect()
@@ -58,18 +62,10 @@ if not html_files:
     st.stop()
 
 display_names = [f.split("/")[-1] for f in html_files]
-file_idx = 0
-if st.session_state.sel_file in display_names:
-    file_idx = display_names.index(st.session_state.sel_file)
-selected_idx = st.selectbox(
-    "HTMLファイルを選択",
-    range(len(display_names)),
-    index=file_idx,
-    format_func=lambda i: display_names[i],
-    key="sel_file_idx",
-)
+file_idx = display_names.index(st.session_state.prev_file) if st.session_state.prev_file in display_names else 0
+selected_idx  = st.selectbox("HTMLファイルを選択", range(len(display_names)), index=file_idx, format_func=lambda i: display_names[i])
 selected_file = html_files[selected_idx]
-st.session_state.sel_file = display_names[selected_idx]
+st.session_state.prev_file = display_names[selected_idx]
 
 # ファイル取得
 stage_path = f"@{selected_db}.{selected_schema}.{selected_stage}"
