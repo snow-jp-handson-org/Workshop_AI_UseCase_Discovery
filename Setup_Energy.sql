@@ -12,13 +12,13 @@
 -- Section 0: 変数定義 (ここだけ変更すれば環境を切り替え可能)
 -- ##########################################################################
 
-SET DB_NAME            = 'ENERGY_REPORT_ANALYZE';      -- メインデータベース名
-SET SEARCH_SCHEMA      = 'REPORT_SEARCH_SCHEMA';       -- 検索・Agent用スキーマ名
+SET DB_NAME            = 'REPORT_ANALYZE';      -- メインデータベース名
+SET SEARCH_SCHEMA      = 'REPORT_SEARCH';       -- 検索・Agent用スキーマ名
 SET OUTPUT_SCHEMA      = 'ANALYZE';                    -- HTML出力・Streamlit用スキーマ名
 SET WAREHOUSE          = 'COMPUTE_WH';                 -- 実行ウェアハウス名
 SET COMPUTE_POOL       = 'SYSTEM_COMPUTE_POOL_CPU';    -- Streamlitコンテナ用コンピュートプール
-SET AGENT_NAME         = 'ENERGY_REPORT_ANALYSIS_AGENT'; -- Cortex Agent名
-SET SEARCH_SERVICE     = 'ENERGY_REPORT_SEARCH_SERVICE'; -- Cortex Search Service名
+SET AGENT_NAME         = 'REPORT_ANALYSIS_AGENT'; -- Cortex Agent名
+SET SEARCH_SERVICE     = 'REPORT_SEARCH_SERVICE'; -- Cortex Search Service名
 SET GIT_REPO           = 'WORKSHOP_AI_USECASE_REPO';   -- Git Repositoryオブジェクト名
 SET GIT_ORIGIN         = 'https://github.com/snow-jp-handson-org/Workshop_AI_UseCase_Discovery.git';
 SET REPORTS_BRANCH_PATH = 'branches/main/Reports/Energy_Report/'; -- PDFのGitパス (エネルギー企業レポート)
@@ -183,7 +183,7 @@ models:
   orchestration: "auto"
 orchestration: {}
 instructions:
-  response: "あなたはエネルギー業界の中長期レポート分析の専門アシスタントです。ENERGY_REPORT_SEARCH_SERVICEに格納されたエネルギー企業のコーポレートレポート（統合報告書・サステナビリティレポート）を検索・分析し、エネルギー転換戦略、脱炭素・カーボンニュートラル目標、再生可能エネルギー投資、財務状況、ESG活動に関するユーザーの質問に日本語で回答します。また、Snowflakeの公式ドキュメント（CKE）も検索可能です。回答時のルール： - エネルギー転換の方向性と具体的な投資計画を明確に示してください - CO2削減目標・カーボンニュートラル達成計画など定量目標は数値を引用してください - 再生可能エネルギー・水素・蓄電池等の新エネルギー戦略を体系的に分析してください - 回答には参照元のレポートファイル名（RELATIVE_PATH）とページ位置（INDEX）を明記してください - Snowflakeドキュメントからの回答にはドキュメントタイトルとURLを明記してください - 分析の根拠が不十分な場合はその旨を明示し、推測と事実を区別してください - 財務目標・設備投資計画・CO2削減ロードマップ等の定量情報は表形式で整理してください"
+  response: "あなたはエネルギー業界の中長期レポート分析の専門アシスタントです。REPORT_SEARCH_SERVICEに格納されたエネルギー企業のコーポレートレポート（統合報告書・サステナビリティレポート）を検索・分析し、エネルギー転換戦略、脱炭素・カーボンニュートラル目標、再生可能エネルギー投資、財務状況、ESG活動に関するユーザーの質問に日本語で回答します。また、Snowflakeの公式ドキュメント（CKE）も検索可能です。回答時のルール： - エネルギー転換の方向性と具体的な投資計画を明確に示してください - CO2削減目標・カーボンニュートラル達成計画など定量目標は数値を引用してください - 再生可能エネルギー・水素・蓄電池等の新エネルギー戦略を体系的に分析してください - 回答には参照元のレポートファイル名（RELATIVE_PATH）とページ位置（INDEX）を明記してください - Snowflakeドキュメントからの回答にはドキュメントタイトルとURLを明記してください - 分析の根拠が不十分な場合はその旨を明示し、推測と事実を区別してください - 財務目標・設備投資計画・CO2削減ロードマップ等の定量情報は表形式で整理してください"
   orchestration: "ユーザーの質問に回答するために、適切なツールを選択してください。\n■ エネルギーレポート分析（report_analysis_search）： - エネルギー企業のコーポレートレポート、統合報告書、中期経営計画、財務情報、ESG、カーボンニュートラル戦略などの質問に使用 - エネルギー転換に関する質問では「再生可能エネルギー」「脱炭素」「水素」「蓄電池」「洋上風力」「太陽光」等のキーワードを活用 - 財務に関する質問では「設備投資」「EBITDA」「ROE」「キャッシュフロー」等の指標名で検索 - ESG・サステナビリティに関する質問では「CO2削減」「カーボンニュートラル」「スコープ1」「スコープ2」「TCFD」等で検索\n■ Snowflakeドキュメント検索（snowflake_docs_search）： - Snowflakeの機能、SQL構文、設定、ベストプラクティスなど技術的な質問に使用\n■ HTMLレポートデプロイ（deploy_html_report）： - 分析結果をHTMLレポートとして保存したい場合に使用 - ユーザーが「レポートを作成して」「HTMLで出力して」「ダッシュボードにまとめて」と依頼した場合に使用 - 【重要】HTMLレポートを作成する前に、必ずユーザーにファイル名（report_name）を確認してください - ユーザーがファイル名を指定するまで、deploy_html_reportツールを呼び出さないでください - report_nameは英数字とアンダースコアのみ使用可能です（日本語不可） - titleには日本語を使用できます\n分析的な質問には以下のアプローチを取ってください： 1. まず質問のテーマに関連する広範なキーワードで検索する 2. 必要に応じて追加の検索を行い、関連情報を網羅的に収集する 3. 収集した情報を統合し、中長期的な観点から分析的に回答する 4. 一度の検索で不十分な場合は、別の角度からのキーワードで再検索してください"
   sample_questions:
     - question: "カーボンニュートラル達成に向けたロードマップと具体的なCO2削減目標を教えてください"
@@ -229,7 +229,7 @@ tool_resources:
     max_results: 10
   report_analysis_search:
     max_results: 1000
-    search_service: "ENERGY_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.ENERGY_REPORT_SEARCH_SERVICE"
+    search_service: "REPORT_ANALYZE.REPORT_SEARCH.REPORT_SEARCH_SERVICE"
     title_column: "RELATIVE_PATH"
   snowflake_docs_search:
     max_results: 1000
@@ -237,7 +237,7 @@ tool_resources:
     title_column: "DOCUMENT_TITLE"
   deploy_html_report:
     type: "procedure"
-    identifier: "ENERGY_REPORT_ANALYZE.REPORT_SEARCH_SCHEMA.DEPLOY_HTML_REPORT"
+    identifier: "REPORT_ANALYZE.REPORT_SEARCH.DEPLOY_HTML_REPORT"
     execution_environment:
       type: "warehouse"
       warehouse: "COMPUTE_WH"
