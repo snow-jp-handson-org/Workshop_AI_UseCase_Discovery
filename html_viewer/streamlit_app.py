@@ -12,9 +12,10 @@ session = get_active_session()
 STATIC_DIR = Path(__file__).parent / "static"
 CDN_MAP = {"chart.js": "chart.umd.min.js"}
 
-# セッションのDB/スキーマをデフォルト値として取得
-DEFAULT_DB     = session.get_current_database() or ""
-DEFAULT_SCHEMA = session.get_current_schema() or ""
+# セッションのDB/スキーマをデフォルト値として取得（コンテナランタイム対応）
+_ctx = session.sql("SELECT CURRENT_DATABASE(), CURRENT_SCHEMA()").collect()[0]
+DEFAULT_DB     = _ctx[0] or ""
+DEFAULT_SCHEMA = _ctx[1] or ""
 
 # session_state の初期化（更新ボタン後も選択値を保持）
 if "sel_db"     not in st.session_state: st.session_state.sel_db     = DEFAULT_DB
