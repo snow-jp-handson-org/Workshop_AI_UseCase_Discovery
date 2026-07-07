@@ -12,17 +12,10 @@
 -- Section 0: 変数定義 (ここだけ変更すれば環境を切り替え可能)
 -- ##########################################################################
 
-SET DB_NAME            = 'REPORT_ANALYZE';      -- メインデータベース名
-SET SEARCH_SCHEMA      = 'REPORT_SEARCH';       -- 検索・Agent用スキーマ名
-SET OUTPUT_SCHEMA      = 'ANALYZE';                    -- HTML出力・Streamlit用スキーマ名
-SET WAREHOUSE          = 'COMPUTE_WH';                 -- 実行ウェアハウス名
-SET COMPUTE_POOL       = 'SYSTEM_COMPUTE_POOL_CPU';    -- Streamlitコンテナ用コンピュートプール
-SET AGENT_NAME         = 'REPORT_ANALYSIS_AGENT'; -- Cortex Agent名
-SET SEARCH_SERVICE     = 'REPORT_SEARCH_SERVICE'; -- Cortex Search Service名
-SET GIT_REPO           = 'WORKSHOP_AI_USECASE_REPO';   -- Git Repositoryオブジェクト名
-SET GIT_ORIGIN         = 'https://github.com/snow-jp-handson-org/Workshop_AI_UseCase_Discovery.git';
-SET REPORTS_BRANCH_PATH = 'branches/main/Reports/Energy_Report/'; -- PDFのGitパス (エネルギー企業レポート)
-SET APP_BRANCH_PATH    = 'branches/main/html_viewer/';            -- StreamlitアプリのGitパス
+SET DB_NAME       = 'REPORT_ANALYZE';  -- メインデータベース名
+SET SEARCH_SCHEMA = 'REPORT_SEARCH';  -- 検索・Agent用スキーマ名
+SET OUTPUT_SCHEMA = 'ANALYZE';        -- HTML出力・Streamlit用スキーマ名
+SET GIT_ORIGIN    = 'https://github.com/snow-jp-handson-org/Workshop_AI_UseCase_Discovery.git';
 
 -- ##########################################################################
 -- Section 1: データベース・スキーマ・ステージの作成
