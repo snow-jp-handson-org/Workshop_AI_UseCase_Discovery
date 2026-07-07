@@ -116,9 +116,8 @@ AS '
 import re
 
 def main(session, html_content: str, report_name: str, title: str) -> str:
-    ctx = session.sql("SELECT CURRENT_DATABASE(), CURRENT_SCHEMA()").collect()[0]
-    db = ctx[0]
-    schema = ctx[1]
+    DB     = "REPORT_ANALYZE"
+    SCHEMA = "REPORT_SEARCH"
 
     if not re.match(r''^[a-zA-Z0-9_]+$'', report_name):
         return "Error: report_name must contain only alphanumeric characters and underscores. Got: ''" + report_name + "''"
@@ -126,17 +125,18 @@ def main(session, html_content: str, report_name: str, title: str) -> str:
     if not html_content or len(html_content.strip()) < 10:
         return "Error: html_content is empty or too short."
 
-    file_name = report_name + ".html"
-    output_schema = db + ".ANALYZE"
+    file_name  = report_name + ".html"
+    tmp_table  = DB + "." + SCHEMA + "._TMP_HTML_DEPLOY"
+    meta_table = DB + "." + SCHEMA + ".HTML_REPORT_METADATA"
+    stage_path = "@" + DB + ".ANALYZE.HTML_REPORTS/" + file_name
 
     try:
         from snowflake.snowpark import Row
-        tmp_table = db + "." + schema + "._TMP_HTML_DEPLOY"
         df = session.create_dataframe([Row(CONTENT=html_content)])
         df.write.mode("overwrite").save_as_table(tmp_table, table_type="temporary")
 
         copy_sql = (
-            "COPY INTO @" + output_schema + ".HTML_REPORTS/" + file_name +
+            "COPY INTO " + stage_path +
             " FROM " + tmp_table +
             " FILE_FORMAT = (TYPE = CSV FIELD_OPTIONALLY_ENCLOSED_BY = NONE" +
             " COMPRESSION = NONE FIELD_DELIMITER = NONE RECORD_DELIMITER = NONE)" +
@@ -146,8 +146,7 @@ def main(session, html_content: str, report_name: str, title: str) -> str:
         session.sql("DROP TABLE IF EXISTS " + tmp_table).collect()
 
         safe_rn = report_name.replace("''", "''''")
-        safe_t = title.replace("''", "''''")
-        meta_table = db + "." + schema + ".HTML_REPORT_METADATA"
+        safe_t  = title.replace("''", "''''")
         merge_sql = (
             "MERGE INTO " + meta_table + " AS target "
             "USING (SELECT ''" + safe_rn + "'' AS REPORT_NAME, ''" + safe_t + "'' AS TITLE) AS source "
