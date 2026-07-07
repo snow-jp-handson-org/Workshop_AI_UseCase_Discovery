@@ -84,7 +84,8 @@ if os.path.exists(local_path):
         html_content = f.read()
 
     import base64
-    b64 = base64.b64encode(html_content.encode("utf-8")).decode()
+    html_rendered = inline_external_scripts(html_content)
+    b64 = base64.b64encode(html_rendered.encode("utf-8")).decode()
 
     col_dl, col_fs = st.columns(2)
     with col_dl:
@@ -111,7 +112,6 @@ if os.path.exists(local_path):
         """
         st.components.v1.html(fullscreen_js, height=50)
 
-    html_rendered = inline_external_scripts(html_content)
     st.components.v1.html(html_rendered, height=5000, scrolling=True)
 else:
     st.error(f"ファイルのダウンロードに失敗しました: {file_name}")
